@@ -1,34 +1,48 @@
 import Link from "next/link";
-import { Contact, Edit3, FileText, FolderKanban, LogOut, Palette, Plus, Save, Settings, Trash2, UserRound } from "lucide-react";
-import { deletePortfolioAction, logoutAction, saveContactAction, saveDesignAction, savePagesAction, savePortfolioAction, saveProfileAction } from "@/app/admin/actions";
-import { getAllPortfoliosForAdmin, getFallbackPortfolios, getFallbackProfile } from "@/lib/data";
+import { Contact, Edit3, FileText, FolderKanban, Images, LogOut, MessageSquareQuote, Navigation, Palette, Plus, Save, Search, Settings, Trash2, UserRound } from "lucide-react";
+import { readdir } from "fs/promises";
+import path from "path";
+import { deletePortfolioAction, logoutAction, saveContactAction, saveDesignAction, saveFooterAction, saveNavigationAction, savePagesAction, savePortfolioAction, saveProfileAction, saveSectionsAction, saveSeoAction, saveTestimonialsAction, seedDemoPortfoliosAction } from "@/app/admin/actions";
+import { getAllPortfoliosForAdmin, getFallbackPortfolios, getFallbackProfile, mergeProfileWithFallback } from "@/lib/data";
 import { requireAdmin } from "@/lib/auth";
-import { profileCollection, serializeDoc } from "@/lib/mongodb";
+import { profileCollection, serializeDoc, type SerializedProfile } from "@/lib/mongodb";
 import { RepeaterInput, SocialLinksRepeater } from "@/components/repeater-input";
+import { SectionEditor } from "@/components/section-editor";
+import { FooterEditor, NavigationEditor, SeoEditor } from "@/components/site-config-editor";
+import { TestimonialEditor } from "@/components/testimonial-editor";
 
 export const dynamic = "force-dynamic";
 
-type AdminView = "profile" | "pages" | "new" | "edit" | "portfolio" | "contact" | "design";
+type AdminView = "profile" | "pages" | "testimonials" | "footer" | "navigation" | "seo" | "media" | "new" | "edit" | "portfolio" | "contact" | "design";
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string; updated?: string; id?: string }> }) {
+const adminViews = ["profile", "pages", "testimonials", "footer", "navigation", "seo", "media", "new", "edit", "portfolio", "contact", "design"];
+const pageKeys = ["home", "portfolio", "about", "contact"] as const;
+const pageLabels = { home: "Home", portfolio: "Portfolio", about: "About", contact: "Contact" };
+
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string; updated?: string; id?: string; page?: string }> }) {
   await requireAdmin();
   const params = await searchParams;
   const activeView: AdminView =
-    params.view === "pages" || params.view === "new" || params.view === "edit" || params.view === "portfolio" || params.view === "contact" || params.view === "design" ? params.view : "profile";
+    adminViews.includes(params.view ?? "") ? (params.view as AdminView) : "profile";
   let profile = getFallbackProfile();
   let portfolios = getFallbackPortfolios();
   let dbOffline = false;
 
   try {
     const [profileDoc, portfolioItems] = await Promise.all([(await profileCollection()).findOne({}), getAllPortfoliosForAdmin()]);
-    profile = profileDoc ? serializeDoc(profileDoc) : profile;
+    profile = profileDoc ? mergeProfileWithFallback(serializeDoc(profileDoc)) : profile;
     portfolios = portfolioItems;
   } catch {
     dbOffline = true;
   }
-  const editingPortfolio = activeView === "edit" ? portfolios.find((item) => item.id === params.id) : null;
+  const dbPortfolioCount = portfolios.length;
+  const visiblePortfolios = dbPortfolioCount ? portfolios : getFallbackPortfolios();
+  const editingPortfolio = activeView === "edit" ? visiblePortfolios.find((item) => item.id === params.id) : null;
+  const editingFallbackPortfolio = Boolean(editingPortfolio && editingPortfolio.id.startsWith("demo-"));
   const design = profile.design ?? {};
   const pages = profile.pages ?? {};
+  const activePage = pageKeys.includes(params.page as (typeof pageKeys)[number]) ? (params.page as (typeof pageKeys)[number]) : "home";
+  const mediaItems = activeView === "media" ? await getMediaItems() : [];
 
   return (
     <main className="shell">
@@ -49,8 +63,32 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Link className={activeView === "profile" ? "active" : ""} href="/admin?view=profile">
               <UserRound size={18} /> Profile
             </Link>
-            <Link className={activeView === "pages" ? "active" : ""} href="/admin?view=pages">
-              <FileText size={18} /> Pages
+            <details className="admin-menu-group" open={activeView === "pages"}>
+              <summary className={activeView === "pages" ? "active" : ""}>
+                <span><FileText size={18} /> Pages</span>
+              </summary>
+              <div className="admin-submenu">
+                {pageKeys.map((key) => (
+                  <Link className={activeView === "pages" && activePage === key ? "active" : ""} href={`/admin?view=pages&page=${key}`} key={key}>
+                    {pageLabels[key]}
+                  </Link>
+                ))}
+              </div>
+            </details>
+            <Link className={activeView === "testimonials" ? "active" : ""} href="/admin?view=testimonials">
+              <MessageSquareQuote size={18} /> Testimonials
+            </Link>
+            <Link className={activeView === "footer" ? "active" : ""} href="/admin?view=footer">
+              <Settings size={18} /> Footer
+            </Link>
+            <Link className={activeView === "navigation" ? "active" : ""} href="/admin?view=navigation">
+              <Navigation size={18} /> Navigation
+            </Link>
+            <Link className={activeView === "seo" ? "active" : ""} href="/admin?view=seo">
+              <Search size={18} /> SEO
+            </Link>
+            <Link className={activeView === "media" ? "active" : ""} href="/admin?view=media">
+              <Images size={18} /> Media
             </Link>
             <Link className={activeView === "new" ? "active" : ""} href="/admin?view=new">
               <Plus size={18} /> Tambah Portfolio
@@ -81,7 +119,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 {activeView === "profile"
                   ? "Profile"
                   : activeView === "pages"
-                    ? "Pages"
+                  ? `${pageLabels[activePage]} Page`
+                  : activeView === "testimonials"
+                    ? "Testimonials"
+                  : activeView === "footer"
+                    ? "Footer"
+                  : activeView === "navigation"
+                    ? "Navigation"
+                  : activeView === "seo"
+                    ? "SEO"
+                  : activeView === "media"
+                    ? "Media"
                   : activeView === "new"
                     ? "Tambah Portfolio"
                     : activeView === "edit"
@@ -97,7 +145,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {activeView === "profile"
                 ? "Atur identitas artist, skill, service, dan konten About."
                 : activeView === "pages"
-                  ? "Ubah teks utama dan media pendukung untuk halaman Home, Portfolio, About, dan Contact."
+                  ? `Ubah semua teks dan media yang tampil di halaman ${pageLabels[activePage]}.`
+                : activeView === "testimonials"
+                  ? "Tambah, edit, atau hapus testimonial/client review."
+                : activeView === "footer"
+                  ? "Atur teks footer, kolom link, newsletter, dan brand text besar."
+                : activeView === "navigation"
+                  ? "Atur brand, logo, dan item navigasi depan."
+                : activeView === "seo"
+                  ? "Atur title, description, dan OG image per halaman."
+                : activeView === "media"
+                  ? "Lihat file yang sudah diupload ke public/uploads."
                 : activeView === "new" || activeView === "edit"
                   ? "Upload model, thumbnail, metadata SEO, dan status publish."
                   : activeView === "contact"
@@ -122,24 +180,52 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </form>
           ) : null}
 
+          {activeView === "testimonials" ? <TestimonialEditor action={saveTestimonialsAction} testimonials={profile.testimonials} /> : null}
+
+          {activeView === "footer" ? <FooterEditor action={saveFooterAction} footer={profile.footer} /> : null}
+
+          {activeView === "navigation" ? <NavigationEditor action={saveNavigationAction} navigation={profile.navigation} /> : null}
+
+          {activeView === "seo" ? <SeoEditor action={saveSeoAction} seo={profile.seo} /> : null}
+
+          {activeView === "media" ? (
+            <section className="panel admin-list">
+              <div className="editor-grid">
+                {mediaItems.length ? mediaItems.map((item) => (
+                  <a className="mini-card media-card" href={item.url} key={item.url} target="_blank" rel="noreferrer">
+                    {item.kind === "image" ? <div className="media-thumb" style={{ backgroundImage: `url(${item.url})` }} /> : <div className="media-model">GLB</div>}
+                    <strong>{item.name}</strong>
+                    <span>{item.url}</span>
+                  </a>
+                )) : <p className="meta">Belum ada file di public/uploads.</p>}
+              </div>
+            </section>
+          ) : null}
+
           {activeView === "pages" ? (
-            <form action={savePagesAction} className="panel form-grid admin-form">
-              {(["home", "portfolio", "about", "contact"] as const).map((key) => (
-                <fieldset className="field-group wide" key={key}>
-                  <legend>{key[0].toUpperCase() + key.slice(1)}</legend>
-                  <div className="field"><label>Eyebrow</label><input name={`${key}Eyebrow`} defaultValue={pages[key]?.eyebrow ?? ""} /></div>
-                  <div className="field"><label>Title</label><input name={`${key}Title`} defaultValue={pages[key]?.title ?? ""} /></div>
-                  <div className="field wide"><label>Description</label><textarea name={`${key}Description`} defaultValue={pages[key]?.description ?? ""} /></div>
-                  <div className="field wide"><label>Image URL</label><input name={`${key}ImageUrl`} defaultValue={pages[key]?.imageUrl ?? ""} placeholder="/uploads/images/hero.webp" /></div>
+            <div className="panel page-editor-stack">
+              <form action={savePagesAction} className="form-grid admin-form">
+                <input name="pageKey" type="hidden" value={activePage} />
+                <fieldset className="field-group wide">
+                  <legend>{pageLabels[activePage]}</legend>
+                  <div className="field"><label>Eyebrow</label><input name={`${activePage}Eyebrow`} defaultValue={pages[activePage]?.eyebrow ?? ""} /></div>
+                  <div className="field"><label>Title</label><input name={`${activePage}Title`} defaultValue={pages[activePage]?.title ?? ""} /></div>
+                  <div className="field wide"><label>Description</label><textarea name={`${activePage}Description`} defaultValue={pages[activePage]?.description ?? ""} /></div>
+                  <div className="field"><label>Upload image</label><input name={`${activePage}ImageFile`} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" /></div>
+                  <div className="field"><label>Atau image URL</label><input name={`${activePage}ImageUrl`} defaultValue={pages[activePage]?.imageUrl ?? ""} placeholder="/uploads/images/hero.webp" /></div>
                 </fieldset>
-              ))}
-              <button className="btn primary" type="submit"><Save size={17} /> Simpan Pages</button>
-            </form>
+                <PageFields pageKey={activePage} page={pages[activePage] ?? {}} />
+                <button className="btn primary" type="submit"><Save size={17} /> Simpan {pageLabels[activePage]} Page</button>
+              </form>
+              {activePage === "home" ? <SectionEditor action={saveSectionsAction} sections={profile.sections} embedded /> : null}
+            </div>
           ) : null}
 
           {activeView === "new" || activeView === "edit" ? (
-            <form action={savePortfolioAction} className="panel form-grid admin-form" encType="multipart/form-data">
-              {editingPortfolio ? <input name="id" type="hidden" value={editingPortfolio.id} /> : null}
+            <form action={savePortfolioAction} className="panel form-grid admin-form">
+              {editingPortfolio && !editingFallbackPortfolio ? <input name="id" type="hidden" value={editingPortfolio.id} /> : null}
+              {editingFallbackPortfolio && editingPortfolio ? <input name="cloneFallbackId" type="hidden" value={editingPortfolio.id} /> : null}
+              {editingFallbackPortfolio ? <p className="admin-success wide">Portfolio demo akan disimpan sebagai data MongoDB baru saat kamu klik Simpan Portfolio.</p> : null}
               <div className="field"><label>Judul</label><input name="title" defaultValue={editingPortfolio?.title ?? ""} required /></div>
               <div className="field"><label>Kategori</label><input name="category" defaultValue={editingPortfolio?.category ?? ""} placeholder="Hard Surface, Environment, Product" required /></div>
               <div className="field wide"><label>Ringkasan SEO</label><textarea name="summary" defaultValue={editingPortfolio?.summary ?? ""} required /></div>
@@ -198,6 +284,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
           {activeView === "portfolio" ? (
           <section className="panel admin-list">
+            {!dbPortfolioCount ? (
+              <div className="admin-empty-state">
+                <div>
+                  <strong>Portfolio website depan masih memakai data demo.</strong>
+                  <p className="meta">Klik tombol ini untuk memasukkan 3 portfolio demo ke MongoDB agar bisa diedit permanen dari CMS.</p>
+                </div>
+                <form action={seedDemoPortfoliosAction}>
+                  <button className="btn primary" type="submit"><Plus size={17} /> Masukkan Demo ke CMS</button>
+                </form>
+              </div>
+            ) : null}
             <div style={{ overflowX: "auto", marginTop: 16 }}>
               <table className="table">
                 <thead>
@@ -210,19 +307,21 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   </tr>
                 </thead>
                 <tbody>
-                  {portfolios.map((item) => (
+                  {visiblePortfolios.map((item) => (
                     <tr key={item.id}>
                       <td><Link href={`/portfolio/${item.slug}`}>{item.title}</Link></td>
                       <td>{item.category}</td>
-                      <td>{item.published ? "Published" : "Draft"}</td>
+                      <td>{item.id.startsWith("demo-") ? "Demo" : item.published ? "Published" : "Draft"}</td>
                       <td>{item.modelUrl}</td>
                       <td>
                         <div className="table-actions">
                           <Link className="btn secondary" href={`/admin?view=edit&id=${item.id}`}><Edit3 size={16} /> Edit</Link>
-                          <form action={deletePortfolioAction}>
-                            <input name="id" type="hidden" value={item.id} />
-                            <button className="btn secondary" type="submit"><Trash2 size={16} /> Hapus</button>
-                          </form>
+                          {!item.id.startsWith("demo-") ? (
+                            <form action={deletePortfolioAction}>
+                              <input name="id" type="hidden" value={item.id} />
+                              <button className="btn secondary" type="submit"><Trash2 size={16} /> Hapus</button>
+                            </form>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -235,5 +334,120 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </section>
       </div>
     </main>
+  );
+}
+
+async function getMediaItems() {
+  const roots = [
+    { dir: path.join(process.cwd(), "public", "uploads", "images"), base: "/uploads/images", kind: "image" as const },
+    { dir: path.join(process.cwd(), "public", "uploads", "models"), base: "/uploads/models", kind: "model" as const }
+  ];
+  const items = await Promise.all(
+    roots.map(async (root) => {
+      try {
+        const files = await readdir(root.dir);
+        return files.map((name) => ({ name, url: `${root.base}/${name}`, kind: root.kind }));
+      } catch {
+        return [];
+      }
+    })
+  );
+  return items.flat();
+}
+
+function PageFields({ pageKey, page }: { pageKey: (typeof pageKeys)[number]; page: NonNullable<SerializedProfile["pages"]>[typeof pageKey] }) {
+  const currentPage = (page ?? {}) as Record<string, string | undefined>;
+  if (pageKey === "home") {
+    return (
+      <fieldset className="field-group wide">
+        <legend>Home Content</legend>
+        <TextField pageKey={pageKey} field="heroHeadline" label="Hero H1 / main headline" page={currentPage} wide />
+        <TextField pageKey={pageKey} field="heroSubheadline" label="Hero subheadline" page={currentPage} wide textarea />
+        <TextField pageKey={pageKey} field="primaryCtaText" label="Primary CTA text" page={currentPage} />
+        <TextField pageKey={pageKey} field="primaryCtaLink" label="Primary CTA link" page={currentPage} />
+        <TextField pageKey={pageKey} field="secondaryCtaText" label="Secondary CTA text" page={currentPage} />
+        <TextField pageKey={pageKey} field="secondaryCtaLink" label="Secondary CTA link" page={currentPage} />
+        <TextField pageKey={pageKey} field="scrollCueText" label="Scroll cue text" page={currentPage} />
+        <TextField pageKey={pageKey} field="liveStageEyebrow" label="Live stage eyebrow" page={currentPage} />
+        <TextField pageKey={pageKey} field="liveStageTitle" label="Live stage title" page={currentPage} wide />
+        <TextField pageKey={pageKey} field="liveStageMeta" label="Live stage meta" page={currentPage} wide />
+        <TextField pageKey={pageKey} field="storyEyebrow" label="Story eyebrow text" page={currentPage} />
+        <TextField pageKey={pageKey} field="servicesTitle" label="Services section title" page={currentPage} />
+        <TextField pageKey={pageKey} field="servicesDescription" label="Services section description" page={currentPage} wide textarea />
+        <TextField pageKey={pageKey} field="servicesPanelTitle" label="Services panel title" page={currentPage} />
+        <TextField pageKey={pageKey} field="skillsPanelTitle" label="Skills panel title" page={currentPage} />
+        <TextField pageKey={pageKey} field="featuresTitle" label="Features section title" page={currentPage} />
+        <TextField pageKey={pageKey} field="featuresDescription" label="Features section description" page={currentPage} wide textarea />
+        <TextField pageKey={pageKey} field="portfolioTitle" label="Portfolio section title" page={currentPage} />
+        <TextField pageKey={pageKey} field="portfolioButtonText" label="Portfolio button text" page={currentPage} />
+        <TextField pageKey={pageKey} field="testimonialsTitle" label="Testimonials title" page={currentPage} />
+        <TextField pageKey={pageKey} field="testimonialsDescription" label="Testimonials description" page={currentPage} wide textarea />
+        <TextField pageKey={pageKey} field="ctaEyebrow" label="CTA eyebrow" page={currentPage} />
+      </fieldset>
+    );
+  }
+
+  if (pageKey === "portfolio") {
+    return (
+      <fieldset className="field-group wide">
+        <legend>Portfolio Content</legend>
+        <TextField pageKey={pageKey} field="allCategoryLabel" label="All category label" page={currentPage} />
+        <TextField pageKey={pageKey} field="emptyText" label="Empty state text" page={currentPage} wide />
+        <TextField pageKey={pageKey} field="detailNotesTitle" label="Detail notes title" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailRoleLabel" label="Detail role label" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailYearLabel" label="Detail year label" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailClientLabel" label="Detail client label" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailViewerLoadingText" label="Viewer loading text" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailViewerHintText" label="Viewer hint text" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailLoadingBadgeText" label="3D loading badge text" page={currentPage} />
+        <TextField pageKey={pageKey} field="detailPreviewCategoryLabel" label="Fallback preview category label" page={currentPage} />
+      </fieldset>
+    );
+  }
+
+  if (pageKey === "about") {
+    return (
+      <fieldset className="field-group wide">
+        <legend>About Content</legend>
+        <TextField pageKey={pageKey} field="experienceTitle" label="Experience title" page={currentPage} />
+        <TextField pageKey={pageKey} field="experienceDescription" label="Experience description" page={currentPage} wide textarea />
+        <TextField pageKey={pageKey} field="servicesTitle" label="Services title" page={currentPage} />
+        <TextField pageKey={pageKey} field="skillsTitle" label="Skills title" page={currentPage} />
+      </fieldset>
+    );
+  }
+
+  return (
+    <fieldset className="field-group wide">
+      <legend>Contact Content</legend>
+      <TextField pageKey={pageKey} field="socialsTitle" label="Social links title" page={currentPage} />
+      <TextField pageKey={pageKey} field="socialsDescription" label="Social links description" page={currentPage} wide textarea />
+      <TextField pageKey={pageKey} field="whatsappLabel" label="WhatsApp button label" page={currentPage} />
+      <TextField pageKey={pageKey} field="emailLabel" label="Email button label" page={currentPage} />
+    </fieldset>
+  );
+}
+
+function TextField({
+  pageKey,
+  field,
+  label,
+  page,
+  wide,
+  textarea
+}: {
+  pageKey: string;
+  field: string;
+  label: string;
+  page: Record<string, string | undefined>;
+  wide?: boolean;
+  textarea?: boolean;
+}) {
+  const name = `${pageKey}${field[0].toUpperCase()}${field.slice(1)}`;
+  return (
+    <div className={wide ? "field wide" : "field"}>
+      <label>{label}</label>
+      {textarea ? <textarea name={name} defaultValue={page[field] ?? ""} /> : <input name={name} defaultValue={page[field] ?? ""} />}
+    </div>
   );
 }

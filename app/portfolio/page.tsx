@@ -3,7 +3,7 @@ import { PortfolioCard } from "@/components/portfolio-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { PageHeader, PageShell } from "@/components/ui";
-import { getPublishedPortfolios } from "@/lib/data";
+import { getProfile, getPublishedPortfolios } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Portfolio 3D",
@@ -11,23 +11,25 @@ export const metadata: Metadata = {
 };
 
 export default async function PortfolioPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
-  const portfolios = await getPublishedPortfolios();
-  const categories = ["All", ...Array.from(new Set(portfolios.map((item) => item.category)))];
+  const [profile, portfolios] = await Promise.all([getProfile(), getPublishedPortfolios()]);
+  const page = profile.pages?.portfolio ?? {};
+  const allLabel = page.allCategoryLabel || "All";
+  const categories = [allLabel, ...Array.from(new Set(portfolios.map((item) => item.category)))];
   const params = await searchParams;
-  const active = params.category ?? "All";
-  const filtered = active === "All" ? portfolios : portfolios.filter((item) => item.category === active);
+  const active = params.category ?? allLabel;
+  const filtered = active === allLabel ? portfolios : portfolios.filter((item) => item.category === active);
 
   return (
     <>
-      <SiteNav />
+      <SiteNav profile={profile} />
       <PageShell>
         <div className="section-head">
-          <PageHeader eyebrow="Browse Work" title="Portfolio 3D" />
-          <p className="lead">Filter karya berdasarkan kategori dan buka detail untuk melihat model 3D secara interaktif.</p>
+          <PageHeader eyebrow={page.eyebrow || "Browse Work"} title={page.title || "Portfolio 3D"} />
+          <p className="lead">{page.description || "Filter karya berdasarkan kategori dan buka detail untuk melihat model 3D secara interaktif."}</p>
         </div>
         <div className="filters" data-reveal>
           {categories.map((category) => (
-            <a className={category === active ? "active" : ""} href={category === "All" ? "/portfolio" : `/portfolio?category=${encodeURIComponent(category)}`} key={category}>
+            <a className={category === active ? "active" : ""} href={category === allLabel ? "/portfolio" : `/portfolio?category=${encodeURIComponent(category)}`} key={category}>
               {category}
             </a>
           ))}
@@ -37,8 +39,9 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
             <PortfolioCard item={item} key={item.slug} />
           ))}
         </div>
+        {!filtered.length ? <p className="meta">{page.emptyText || "Belum ada portfolio untuk kategori ini."}</p> : null}
       </PageShell>
-      <SiteFooter />
+      <SiteFooter profile={profile} />
     </>
   );
 }

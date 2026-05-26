@@ -25,7 +25,7 @@ export function PortfolioCard({ item }: PortfolioCardProps) {
       <div className="card-body">
         <div className="meta">
           <span>{item.category}</span>
-          <span>·</span>
+          <span>/</span>
           <span>{item.year}</span>
         </div>
         <h3>{item.title}</h3>

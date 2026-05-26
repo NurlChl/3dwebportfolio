@@ -4,7 +4,7 @@ import { BadgeCheck } from "lucide-react";
 import { ModelViewer } from "@/components/model-viewer";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
-import { getPortfolioBySlug, getPublishedPortfolios } from "@/lib/data";
+import { getPortfolioBySlug, getProfile, getPublishedPortfolios } from "@/lib/data";
 
 type DetailProps = {
   params: Promise<{ slug: string }>;
@@ -33,8 +33,9 @@ export async function generateMetadata({ params }: DetailProps): Promise<Metadat
 
 export default async function PortfolioDetailPage({ params }: DetailProps) {
   const { slug } = await params;
-  const item = await getPortfolioBySlug(slug);
+  const [item, profile] = await Promise.all([getPortfolioBySlug(slug), getProfile()]);
   if (!item) notFound();
+  const page = profile.pages?.portfolio ?? {};
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const portfolioJsonLd = {
     "@context": "https://schema.org",
@@ -52,7 +53,7 @@ export default async function PortfolioDetailPage({ params }: DetailProps) {
 
   return (
     <>
-      <SiteNav />
+      <SiteNav profile={profile} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(portfolioJsonLd) }} />
       <main className="shell section page-hero">
         <div className="eyebrow">{item.category}</div>
@@ -60,19 +61,26 @@ export default async function PortfolioDetailPage({ params }: DetailProps) {
         <p className="lead" style={{ marginTop: 18 }}>{item.summary}</p>
 
         <div className="detail-stage" data-reveal>
-          <ModelViewer title={item.title} modelUrl={item.modelUrl} />
+          <ModelViewer
+            title={item.title}
+            modelUrl={item.modelUrl}
+            loadingText={page.detailViewerLoadingText}
+            hintText={page.detailViewerHintText}
+            loadingBadgeText={page.detailLoadingBadgeText}
+            previewCategoryLabel={page.detailPreviewCategoryLabel}
+          />
         </div>
 
         <div className="detail-layout">
           <article className="panel">
-            <h2 style={{ fontSize: 34 }}>Project Notes</h2>
+            <h2 style={{ fontSize: 34 }}>{page.detailNotesTitle || "Project Notes"}</h2>
             <p className="lead" style={{ marginTop: 16 }}>{item.description}</p>
           </article>
           <aside className="panel">
             <ul className="list">
-              <li><BadgeCheck size={18} color="var(--green)" /> Role: {item.role}</li>
-              <li><BadgeCheck size={18} color="var(--green)" /> Year: {item.year}</li>
-              {item.client ? <li><BadgeCheck size={18} color="var(--green)" /> Client: {item.client}</li> : null}
+              <li><BadgeCheck size={18} color="var(--green)" /> {page.detailRoleLabel || "Role"}: {item.role}</li>
+              <li><BadgeCheck size={18} color="var(--green)" /> {page.detailYearLabel || "Year"}: {item.year}</li>
+              {item.client ? <li><BadgeCheck size={18} color="var(--green)" /> {page.detailClientLabel || "Client"}: {item.client}</li> : null}
             </ul>
             <div className="tag-row" style={{ marginTop: 22 }}>
               {[...item.software, ...item.tags].map((tag) => (
@@ -82,7 +90,7 @@ export default async function PortfolioDetailPage({ params }: DetailProps) {
           </aside>
         </div>
       </main>
-      <SiteFooter />
+      <SiteFooter profile={profile} />
     </>
   );
 }

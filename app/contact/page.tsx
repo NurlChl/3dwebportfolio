@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 export default async function ContactPage() {
   const profile = await getProfile();
+  const page = profile.pages?.contact ?? {};
   const socials = [
     profile.instagram ? { label: "Instagram", url: profile.instagram } : null,
     profile.facebook ? { label: "Facebook", url: profile.facebook } : null,
@@ -22,18 +23,18 @@ export default async function ContactPage() {
 
   return (
     <>
-      <SiteNav />
+      <SiteNav profile={profile} />
       <PageShell>
         <div className="split">
-          <PageHeader eyebrow="Start A Project" title="Contact">Kirim brief asset, kebutuhan realtime preview, atau pipeline Blender/Unreal yang ingin dibangun.</PageHeader>
+          <PageHeader eyebrow={page.eyebrow || "Start A Project"} title={page.title || "Contact"}>{page.description || "Kirim brief asset, kebutuhan realtime preview, atau pipeline Blender/Unreal yang ingin dibangun."}</PageHeader>
           <Panel className="contact-panel" data-reveal>
             {profile.whatsapp ? (
               <a className="contact-link" href={`https://wa.me/${profile.whatsapp.replace(/\D/g, "")}`}>
-                <MessageCircle size={20} /> WhatsApp
+                <MessageCircle size={20} /> {page.whatsappLabel || "WhatsApp"}
               </a>
             ) : null}
             <a className="contact-link" href={`mailto:${profile.email}`}>
-              <Mail size={20} /> {profile.email}
+              <Mail size={20} /> {page.emailLabel || profile.email}
             </a>
             {profile.instagram ? (
               <a className="contact-link" href={profile.instagram}>
@@ -48,7 +49,7 @@ export default async function ContactPage() {
           </Panel>
         </div>
         <section className="section">
-          <SectionHeader title="Social Links">Semua kanal sosial bisa ditambah dan diubah dari CMS.</SectionHeader>
+          <SectionHeader title={page.socialsTitle || "Social Links"}>{page.socialsDescription || "Semua kanal sosial bisa ditambah dan diubah dari CMS."}</SectionHeader>
           <div className="contact-grid">
             {socials.map((social) => (
               <a className="panel contact-card" data-reveal href={social.url} key={`${social.label}-${social.url}`}>
@@ -59,7 +60,7 @@ export default async function ContactPage() {
           </div>
         </section>
       </PageShell>
-      <SiteFooter />
+      <SiteFooter profile={profile} />
     </>
   );
 }

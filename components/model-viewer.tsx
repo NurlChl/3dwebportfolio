@@ -10,6 +10,10 @@ type ModelViewerProps = {
   modelUrl?: string | null;
   title: string;
   compact?: boolean;
+  loadingText?: string;
+  hintText?: string;
+  loadingBadgeText?: string;
+  previewCategoryLabel?: string;
 };
 
 function DemoAsset({ title }: { title: string }) {
@@ -56,7 +60,7 @@ function LoadedModel({ modelUrl }: { modelUrl: string }) {
   );
 }
 
-function Scene({ modelUrl, title }: ModelViewerProps) {
+function Scene({ modelUrl, title, loadingBadgeText }: ModelViewerProps) {
   return (
     <>
       <ambientLight intensity={0.65} />
@@ -64,7 +68,7 @@ function Scene({ modelUrl, title }: ModelViewerProps) {
       <Suspense
         fallback={
           <Html center>
-            <span className="pill">Loading 3D</span>
+            <span className="pill">{loadingBadgeText || "Loading 3D"}</span>
           </Html>
         }
       >
@@ -81,7 +85,7 @@ function Scene({ modelUrl, title }: ModelViewerProps) {
   );
 }
 
-export function ModelViewer({ modelUrl, title, compact }: ModelViewerProps) {
+export function ModelViewer({ modelUrl, title, compact, loadingText, hintText, loadingBadgeText, previewCategoryLabel }: ModelViewerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(!compact);
   const [isReady, setIsReady] = useState(false);
@@ -104,8 +108,8 @@ export function ModelViewer({ modelUrl, title, compact }: ModelViewerProps) {
   return (
     <div className="viewer-wrap" ref={ref}>
       <div className={isReady ? "viewer-fallback is-hidden" : "viewer-fallback"}>
-        <AssetPreview title={title} category="3D model" />
-        <span className="viewer-loading">Preparing realtime 3D preview</span>
+        <AssetPreview title={title} category={previewCategoryLabel || "3D model"} />
+        <span className="viewer-loading">{loadingText || "Preparing realtime 3D preview"}</span>
       </div>
       {isVisible ? (
         <Canvas
@@ -114,10 +118,10 @@ export function ModelViewer({ modelUrl, title, compact }: ModelViewerProps) {
           gl={{ antialias: !compact, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping }}
           onCreated={() => setIsReady(true)}
         >
-          <Scene modelUrl={modelUrl} title={title} />
+          <Scene modelUrl={modelUrl} title={title} loadingBadgeText={loadingBadgeText} />
         </Canvas>
       ) : null}
-      {!compact ? <div className="viewer-label">Drag to orbit · Scroll to zoom</div> : null}
+      {!compact ? <div className="viewer-label">{hintText || "Drag to orbit / Scroll to zoom"}</div> : null}
     </div>
   );
 }

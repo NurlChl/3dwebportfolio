@@ -20,7 +20,7 @@ export function RepeaterInput({ label, name, values = [""], placeholder }: Repea
         {items.map((value, index) => (
           <div className="repeater-row" key={`${name}-${index}`}>
             <input name={name} defaultValue={value} placeholder={placeholder} />
-            <button type="button" aria-label="Hapus item" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+            <button className="repeater-remove" type="button" aria-label="Hapus item" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
               <X size={16} />
             </button>
           </div>
@@ -48,7 +48,7 @@ export function SocialLinksRepeater({ links = [] }: SocialLinksRepeaterProps) {
           <div className="social-row" key={`social-${index}`}>
             <input name="socialLabel" defaultValue={item.label} placeholder="Nama platform" />
             <input name="socialUrl" defaultValue={item.url} placeholder="https://..." />
-            <button type="button" aria-label="Hapus sosial" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+            <button className="repeater-remove" type="button" aria-label="Hapus sosial" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
               <X size={16} />
             </button>
           </div>

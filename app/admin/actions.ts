@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clearSession, createSession, requireAdmin, verifyAdmin } from "@/lib/auth";
+import { getFallbackPortfolios, getFallbackProfile } from "@/lib/data";
 import { ObjectId, portfoliosCollection, profileCollection } from "@/lib/mongodb";
 import { slugify } from "@/lib/utils";
 
@@ -102,13 +103,7 @@ export async function saveProfileAction(formData: FormData) {
     skills: getList(formData, "skills", String(formData.get("skills") ?? ""))
   };
 
-  const collection = await profileCollection();
-  const existing = await collection.findOne({});
-  if (existing) {
-    await collection.updateOne({ _id: existing._id }, { $set: { ...data, updatedAt: new Date() } });
-  } else {
-    await collection.insertOne({ ...data, updatedAt: new Date() });
-  }
+  await upsertProfilePatch(data);
 
   revalidatePath("/");
   revalidatePath("/about");
@@ -119,6 +114,7 @@ export async function savePortfolioAction(formData: FormData) {
   await requireAdmin();
 
   const raw = Object.fromEntries(formData);
+  const cloneFallbackId = String(formData.get("cloneFallbackId") ?? "").trim();
   const parsed = portfolioSchema.parse({
     ...raw,
     featured: formData.get("featured") === "on",
@@ -151,7 +147,7 @@ export async function savePortfolioAction(formData: FormData) {
   }
 
   const collection = await portfoliosCollection();
-  if (parsed.id) {
+  if (parsed.id && !cloneFallbackId) {
     await collection.updateOne({ _id: new ObjectId(parsed.id) }, { $set: data });
   } else {
     await collection.insertOne({ ...data, createdAt: new Date() });
@@ -161,6 +157,28 @@ export async function savePortfolioAction(formData: FormData) {
   revalidatePath("/portfolio");
   revalidatePath(`/portfolio/${slug}`);
   redirect("/admin?view=portfolio&updated=portfolio");
+}
+
+export async function seedDemoPortfoliosAction() {
+  await requireAdmin();
+  const collection = await portfoliosCollection();
+  const now = new Date();
+  for (const item of getFallbackPortfolios()) {
+    const { id, createdAt, updatedAt, ...portfolio } = item;
+    void id;
+    void createdAt;
+    void updatedAt;
+    await collection.updateOne(
+      { slug: portfolio.slug },
+      {
+        $setOnInsert: { ...portfolio, createdAt: now, updatedAt: now }
+      },
+      { upsert: true }
+    );
+  }
+  revalidatePath("/");
+  revalidatePath("/portfolio");
+  redirect("/admin?view=portfolio&updated=seeded");
 }
 
 export async function saveContactAction(formData: FormData) {
@@ -176,22 +194,7 @@ export async function saveContactAction(formData: FormData) {
     updatedAt: new Date()
   };
 
-  const collection = await profileCollection();
-  const existing = await collection.findOne({});
-  if (existing) {
-    await collection.updateOne({ _id: existing._id }, { $set: data });
-  } else {
-    await collection.insertOne({
-      name: "3D Artist",
-      title: "3D Artist",
-      bio: "",
-      location: "",
-      experience: "",
-      services: [],
-      skills: [],
-      ...data
-    });
-  }
+  await upsertProfilePatch(data);
 
   revalidatePath("/contact");
   redirect("/admin?view=contact&updated=contact");
@@ -217,11 +220,7 @@ export async function saveDesignAction(formData: FormData) {
     buttonSize: String(formData.get("buttonSize") ?? "").trim(),
     badgeSize: String(formData.get("badgeSize") ?? "").trim()
   };
-  const collection = await profileCollection();
-  const existing = await collection.findOne({});
-  if (existing) {
-    await collection.updateOne({ _id: existing._id }, { $set: { design, updatedAt: new Date() } });
-  }
+  await upsertProfilePatch({ design });
   revalidatePath("/");
   revalidatePath("/portfolio");
   revalidatePath("/about");
@@ -232,27 +231,181 @@ export async function saveDesignAction(formData: FormData) {
 export async function savePagesAction(formData: FormData) {
   await requireAdmin();
   const pageKeys = ["home", "portfolio", "about", "contact"] as const;
-  const pages = Object.fromEntries(
-    pageKeys.map((key) => [
-      key,
-      {
-        eyebrow: String(formData.get(`${key}Eyebrow`) ?? "").trim(),
-        title: String(formData.get(`${key}Title`) ?? "").trim(),
-        description: String(formData.get(`${key}Description`) ?? "").trim(),
-        imageUrl: String(formData.get(`${key}ImageUrl`) ?? "").trim()
-      }
-    ])
+  const selectedPage = String(formData.get("pageKey") ?? "").trim();
+  const keysToSave = pageKeys.includes(selectedPage as (typeof pageKeys)[number]) ? [selectedPage as (typeof pageKeys)[number]] : pageKeys;
+  const currentProfile = await (await profileCollection()).findOne({});
+  const fallbackPages = getFallbackProfile().pages ?? {};
+  const currentPages = currentProfile?.pages ?? {};
+  const pages = {
+    home: { ...fallbackPages.home, ...currentPages.home },
+    portfolio: { ...fallbackPages.portfolio, ...currentPages.portfolio },
+    about: { ...fallbackPages.about, ...currentPages.about },
+    contact: { ...fallbackPages.contact, ...currentPages.contact }
+  };
+  const updates = Object.fromEntries(
+    await Promise.all(
+      keysToSave.map(async (key) => {
+        const uploadedImage = await saveUpload(formData.get(`${key}ImageFile`) as File | null, "image");
+        return [
+          key,
+          {
+            ...(pages[key] ?? {}),
+            ...getPageFormFields(formData, key),
+            imageUrl: uploadedImage ?? String(formData.get(`${key}ImageUrl`) ?? "").trim()
+          }
+        ];
+      })
+    )
   );
-  const collection = await profileCollection();
-  const existing = await collection.findOne({});
-  if (existing) {
-    await collection.updateOne({ _id: existing._id }, { $set: { pages, updatedAt: new Date() } });
-  }
+  await upsertProfilePatch({ pages: { ...pages, ...updates } });
   revalidatePath("/");
   revalidatePath("/portfolio");
   revalidatePath("/about");
   revalidatePath("/contact");
-  redirect("/admin?view=pages&updated=pages");
+  redirect(`/admin?view=pages&page=${keysToSave[0]}&updated=pages`);
+}
+
+function getPageFormFields(formData: FormData, key: "home" | "portfolio" | "about" | "contact") {
+  const base = {
+    eyebrow: String(formData.get(`${key}Eyebrow`) ?? "").trim(),
+    title: String(formData.get(`${key}Title`) ?? "").trim(),
+    description: String(formData.get(`${key}Description`) ?? "").trim()
+  };
+  const fields: Record<typeof key, string[]> = {
+    home: [
+      "heroHeadline",
+      "heroSubheadline",
+      "primaryCtaText",
+      "primaryCtaLink",
+      "secondaryCtaText",
+      "secondaryCtaLink",
+      "scrollCueText",
+      "liveStageEyebrow",
+      "liveStageTitle",
+      "liveStageMeta",
+      "storyEyebrow",
+      "servicesTitle",
+      "servicesDescription",
+      "servicesPanelTitle",
+      "skillsPanelTitle",
+      "featuresTitle",
+      "featuresDescription",
+      "portfolioTitle",
+      "portfolioButtonText",
+      "testimonialsTitle",
+      "testimonialsDescription",
+      "ctaEyebrow"
+    ],
+    portfolio: [
+      "allCategoryLabel",
+      "emptyText",
+      "detailNotesTitle",
+      "detailRoleLabel",
+      "detailYearLabel",
+      "detailClientLabel",
+      "detailViewerLoadingText",
+      "detailViewerHintText",
+      "detailLoadingBadgeText",
+      "detailPreviewCategoryLabel"
+    ],
+    about: ["experienceTitle", "experienceDescription", "servicesTitle", "skillsTitle"],
+    contact: ["socialsTitle", "socialsDescription", "whatsappLabel", "emailLabel"]
+  };
+  return {
+    ...base,
+    ...Object.fromEntries(fields[key].map((field) => [field, String(formData.get(`${key}${capitalize(field)}`) ?? "").trim()]))
+  };
+}
+
+function capitalize(value: string) {
+  return `${value[0].toUpperCase()}${value.slice(1)}`;
+}
+
+async function upsertProfilePatch(data: Record<string, unknown>) {
+  const collection = await profileCollection();
+  const existing = await collection.findOne({});
+  if (existing) {
+    await collection.updateOne({ _id: existing._id }, { $set: { ...data, updatedAt: new Date() } });
+  } else {
+    const { id, ...fallbackProfile } = getFallbackProfile();
+    void id;
+    await collection.insertOne({ ...fallbackProfile, ...data, updatedAt: new Date() });
+  }
+}
+
+function parseJsonField<T>(formData: FormData, name: string, fallback: T) {
+  const raw = String(formData.get(name) ?? "").trim();
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function revalidatePublicPages() {
+  revalidatePath("/");
+  revalidatePath("/portfolio");
+  revalidatePath("/about");
+  revalidatePath("/contact");
+}
+
+export async function saveSectionsAction(formData: FormData) {
+  await requireAdmin();
+  const sections = parseJsonField(formData, "sections", {});
+  await upsertProfilePatch({ sections });
+  revalidatePublicPages();
+  redirect("/admin?view=sections&updated=sections");
+}
+
+export async function saveTestimonialsAction(formData: FormData) {
+  await requireAdmin();
+  const testimonials = parseJsonField<Array<{ name: string; role: string; text: string; avatar?: string }>>(formData, "testimonials", []);
+  const withUploads = await Promise.all(
+    testimonials.map(async (testimonial, index) => ({
+      ...testimonial,
+      avatar: (await saveUpload(formData.get(`testimonialAvatarFile${index}`) as File | null, "image")) ?? testimonial.avatar
+    }))
+  );
+  await upsertProfilePatch({ testimonials: withUploads });
+  revalidatePath("/");
+  redirect("/admin?view=testimonials&updated=testimonials");
+}
+
+export async function saveFooterAction(formData: FormData) {
+  await requireAdmin();
+  const footer = parseJsonField(formData, "footer", {});
+  await upsertProfilePatch({ footer });
+  revalidatePublicPages();
+  redirect("/admin?view=footer&updated=footer");
+}
+
+export async function saveNavigationAction(formData: FormData) {
+  await requireAdmin();
+  const navigation = parseJsonField(formData, "navigation", {});
+  const uploadedLogo = await saveUpload(formData.get("logoFile") as File | null, "image");
+  if (uploadedLogo) {
+    Object.assign(navigation, { logo: uploadedLogo });
+  }
+  await upsertProfilePatch({ navigation });
+  revalidatePublicPages();
+  redirect("/admin?view=navigation&updated=navigation");
+}
+
+export async function saveSeoAction(formData: FormData) {
+  await requireAdmin();
+  const seo = parseJsonField<Record<string, { title?: string; description?: string; ogImage?: string }>>(formData, "seo", {});
+  await Promise.all(
+    (["home", "portfolio", "about", "contact"] as const).map(async (key) => {
+      const uploadedImage = await saveUpload(formData.get(`${key}OgFile`) as File | null, "image");
+      if (uploadedImage) {
+        seo[key] = { ...(seo[key] ?? {}), ogImage: uploadedImage };
+      }
+    })
+  );
+  await upsertProfilePatch({ seo });
+  revalidatePublicPages();
+  redirect("/admin?view=seo&updated=seo");
 }
 
 export async function deletePortfolioAction(formData: FormData) {

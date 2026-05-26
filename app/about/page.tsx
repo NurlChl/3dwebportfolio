@@ -12,13 +12,14 @@ export const metadata: Metadata = {
 
 export default async function AboutPage() {
   const profile = await getProfile();
+  const page = profile.pages?.about ?? {};
 
   return (
     <>
-      <SiteNav />
+      <SiteNav profile={profile} />
       <PageShell>
         <div className="split">
-          <PageHeader eyebrow="About The Artist" title={profile.name}>{profile.bio}</PageHeader>
+          <PageHeader eyebrow={page.eyebrow || "About The Artist"} title={page.title || profile.name}>{page.description || profile.bio}</PageHeader>
           <Panel className="contact-panel" data-reveal>
             <ul className="list">
               <li><MapPin size={18} /> {profile.location}</li>
@@ -28,11 +29,11 @@ export default async function AboutPage() {
           </Panel>
         </div>
 
-        <section className="section light" style={{ marginLeft: "calc(50% - 50vw)", marginRight: "calc(50% - 50vw)", paddingLeft: "max(16px, calc((100vw - 1240px) / 2 + 24px))", paddingRight: "max(16px, calc((100vw - 1240px) / 2 + 24px))" }}>
-          <SectionHeader title="Experience">Terbiasa mengolah bentuk dari blocking sampai final asset, menjaga topology, UV, material PBR, dan export GLB/FBX untuk berbagai kebutuhan.</SectionHeader>
+        <section className="section light about-experience">
+          <SectionHeader title={page.experienceTitle || "Experience"}>{page.experienceDescription || "Terbiasa mengolah bentuk dari blocking sampai final asset, menjaga topology, UV, material PBR, dan export GLB/FBX untuk berbagai kebutuhan."}</SectionHeader>
           <div className="split">
             <Panel>
-              <h3>Services</h3>
+              <h3>{page.servicesTitle || "Services"}</h3>
               <ul className="list" style={{ marginTop: 18 }}>
                 {profile.services.map((item) => (
                   <li key={item}><BadgeCheck size={18} color="var(--green)" /> {item}</li>
@@ -40,7 +41,7 @@ export default async function AboutPage() {
               </ul>
             </Panel>
             <Panel>
-              <h3>Skills</h3>
+              <h3>{page.skillsTitle || "Skills"}</h3>
               <div className="tag-row" style={{ marginTop: 18 }}>
                 {profile.skills.map((item) => (
                   <Tag key={item}>{item}</Tag>
@@ -50,7 +51,7 @@ export default async function AboutPage() {
           </div>
         </section>
       </PageShell>
-      <SiteFooter />
+      <SiteFooter profile={profile} />
     </>
   );
 }

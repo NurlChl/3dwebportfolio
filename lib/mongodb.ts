@@ -59,10 +59,98 @@ export type ProfileDoc = {
   linkedin?: string;
   socialLinks?: Array<{ label: string; url: string }>;
   pages?: {
-    home?: { eyebrow?: string; title?: string; description?: string; imageUrl?: string };
-    portfolio?: { eyebrow?: string; title?: string; description?: string; imageUrl?: string };
-    about?: { eyebrow?: string; title?: string; description?: string; imageUrl?: string };
-    contact?: { eyebrow?: string; title?: string; description?: string; imageUrl?: string };
+    home?: {
+      eyebrow?: string;
+      title?: string;
+      description?: string;
+      imageUrl?: string;
+      heroHeadline?: string;
+      heroSubheadline?: string;
+      primaryCtaText?: string;
+      primaryCtaLink?: string;
+      secondaryCtaText?: string;
+      secondaryCtaLink?: string;
+      scrollCueText?: string;
+      liveStageEyebrow?: string;
+      liveStageTitle?: string;
+      liveStageMeta?: string;
+      storyEyebrow?: string;
+      servicesTitle?: string;
+      servicesDescription?: string;
+      servicesPanelTitle?: string;
+      skillsPanelTitle?: string;
+      featuresTitle?: string;
+      featuresDescription?: string;
+      portfolioTitle?: string;
+      portfolioButtonText?: string;
+      testimonialsTitle?: string;
+      testimonialsDescription?: string;
+      ctaEyebrow?: string;
+    };
+    portfolio?: {
+      eyebrow?: string;
+      title?: string;
+      description?: string;
+      imageUrl?: string;
+      allCategoryLabel?: string;
+      emptyText?: string;
+      detailCategoryFallback?: string;
+      detailNotesTitle?: string;
+      detailRoleLabel?: string;
+      detailYearLabel?: string;
+      detailClientLabel?: string;
+      detailViewerLoadingText?: string;
+      detailViewerHintText?: string;
+      detailLoadingBadgeText?: string;
+      detailPreviewCategoryLabel?: string;
+    };
+    about?: {
+      eyebrow?: string;
+      title?: string;
+      description?: string;
+      imageUrl?: string;
+      experienceTitle?: string;
+      experienceDescription?: string;
+      servicesTitle?: string;
+      skillsTitle?: string;
+    };
+    contact?: {
+      eyebrow?: string;
+      title?: string;
+      description?: string;
+      imageUrl?: string;
+      socialsTitle?: string;
+      socialsDescription?: string;
+      whatsappLabel?: string;
+      emailLabel?: string;
+    };
+  };
+  sections?: {
+    hero?: { headline?: string; subheadline?: string; ctaText?: string; ctaLink?: string; showScene?: boolean };
+    stats?: Array<{ value: string; label: string; icon?: string }>;
+    story?: { title?: string; subtitle?: string; steps?: Array<{ number: string; title: string; description: string }> };
+    features?: Array<{ title: string; description: string; icon?: string }>;
+    cta?: { title?: string; description?: string; buttonText?: string; buttonLink?: string };
+    sectionOrder?: string[];
+  };
+  testimonials?: Array<{ name: string; role: string; text: string; avatar?: string }>;
+  footer?: {
+    brandText?: string;
+    tagline?: string;
+    columns?: Array<{ title: string; links: Array<{ label: string; url: string }> }>;
+    copyright?: string;
+    showNewsletter?: boolean;
+  };
+  navigation?: {
+    brand?: string;
+    logo?: string;
+    items?: Array<{ label: string; url: string; isExternal?: boolean }>;
+  };
+  seo?: {
+    home?: { title?: string; description?: string; ogImage?: string };
+    portfolio?: { title?: string; description?: string; ogImage?: string };
+    about?: { title?: string; description?: string; ogImage?: string };
+    contact?: { title?: string; description?: string; ogImage?: string };
   };
   design?: {
     headingFont?: string;

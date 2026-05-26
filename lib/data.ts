@@ -84,13 +84,136 @@ const fallbackProfile: SerializedProfile = {
   linkedin: "https://linkedin.com/",
   socialLinks: [],
   pages: {
-    home: { eyebrow: "Realtime 3D Portfolio", title: "Arka Wisesa", description: "3D Artist, Blender Generalist, Realtime Asset Creator. Membuat asset 3D siap produksi untuk game, cinematic, product showcase, dan realtime web experience." },
-    portfolio: { eyebrow: "Browse Work", title: "Portfolio 3D", description: "Filter karya berdasarkan kategori dan buka detail untuk melihat model 3D secara interaktif." },
-    about: { eyebrow: "About The Artist", title: "Arka Wisesa", description: "Membuat asset 3D siap produksi untuk game, cinematic, product showcase, dan realtime web experience." },
-    contact: { eyebrow: "Start A Project", title: "Contact", description: "Kirim brief asset, kebutuhan realtime preview, atau pipeline Blender/Unreal yang ingin dibangun." }
+    home: {
+      eyebrow: "Realtime 3D Portfolio",
+      title: "Arka Wisesa",
+      description: "3D Artist, Blender Generalist, Realtime Asset Creator. Membuat asset 3D siap produksi untuk game, cinematic, product showcase, dan realtime web experience.",
+      heroHeadline: "3D worlds that feel ready to touch.",
+      heroSubheadline: "Portfolio interaktif untuk asset Blender, Unreal Engine, GLB, dan product visual yang bisa dikelola penuh dari CMS.",
+      primaryCtaText: "Lihat Portfolio",
+      primaryCtaLink: "/portfolio",
+      secondaryCtaText: "Profil Artist",
+      secondaryCtaLink: "/about",
+      scrollCueText: "Scroll to start",
+      liveStageEyebrow: "Live Asset Stage",
+      liveStageTitle: "Orbit-ready models, built for web.",
+      liveStageMeta: "Blender / Unreal / GLB / PBR / Three.js",
+      storyEyebrow: "Where assets",
+      servicesTitle: "Service & Skill",
+      servicesDescription: "Pipeline dirancang untuk asset yang enak dilihat, mudah dipakai ulang, dan cukup ringan untuk realtime web viewer.",
+      servicesPanelTitle: "Services",
+      skillsPanelTitle: "Core Software",
+      featuresTitle: "Asset Superpowers",
+      featuresDescription: "Playful seperti papercraft, tapi tetap presisi untuk showcase produk, game prototype, dan web viewer.",
+      portfolioTitle: "Portfolio Terbaru",
+      portfolioButtonText: "Semua karya",
+      testimonialsTitle: "Client Notes",
+      testimonialsDescription: "Trust signal ringan untuk menunjukkan bagaimana asset 3D dipakai di pitching, prototype, dan product showcase.",
+      ctaEyebrow: "Launch ready"
+    },
+    portfolio: {
+      eyebrow: "Browse Work",
+      title: "Portfolio 3D",
+      description: "Filter karya berdasarkan kategori dan buka detail untuk melihat model 3D secara interaktif.",
+      allCategoryLabel: "All",
+      emptyText: "Belum ada portfolio untuk kategori ini.",
+      detailNotesTitle: "Project Notes",
+      detailRoleLabel: "Role",
+      detailYearLabel: "Year",
+      detailClientLabel: "Client",
+      detailViewerLoadingText: "Preparing realtime 3D preview",
+      detailViewerHintText: "Drag to orbit / Scroll to zoom",
+      detailLoadingBadgeText: "Loading 3D",
+      detailPreviewCategoryLabel: "3D model"
+    },
+    about: {
+      eyebrow: "About The Artist",
+      title: "Arka Wisesa",
+      description: "Membuat asset 3D siap produksi untuk game, cinematic, product showcase, dan realtime web experience.",
+      experienceTitle: "Experience",
+      experienceDescription: "Terbiasa mengolah bentuk dari blocking sampai final asset, menjaga topology, UV, material PBR, dan export GLB/FBX untuk berbagai kebutuhan.",
+      servicesTitle: "Services",
+      skillsTitle: "Skills"
+    },
+    contact: {
+      eyebrow: "Start A Project",
+      title: "Contact",
+      description: "Kirim brief asset, kebutuhan realtime preview, atau pipeline Blender/Unreal yang ingin dibangun.",
+      socialsTitle: "Social Links",
+      socialsDescription: "Semua kanal sosial bisa ditambah dan diubah dari CMS.",
+      whatsappLabel: "WhatsApp",
+      emailLabel: "Email"
+    }
+  },
+  sections: {
+    hero: {
+      headline: "3D worlds that feel ready to touch.",
+      subheadline: "Portfolio interaktif untuk asset Blender, Unreal Engine, GLB, dan product visual yang bisa dikelola penuh dari CMS.",
+      ctaText: "Lihat Portfolio",
+      ctaLink: "/portfolio",
+      showScene: true
+    },
+    stats: [
+      { value: "6+", label: "Tahun produksi asset 3D", icon: "BadgeCheck" },
+      { value: "GLB", label: "Preview langsung di browser", icon: "Cuboid" },
+      { value: "PBR", label: "Texture workflow siap engine", icon: "Sparkles" },
+      { value: "SEO", label: "Structured pages dan sitemap", icon: "FileText" }
+    ],
+    story: {
+      title: "Come Alive",
+      subtitle: "Setiap karya disiapkan sebagai experience kecil: bisa diputar, diperiksa materialnya, dan dibaca proses pembuatannya langsung dari browser.",
+      steps: [
+        { number: "01", title: "Model", description: "Blocking, silhouette, topology, dan bentuk utama yang siap produksi." },
+        { number: "02", title: "Texture", description: "Material PBR, warna, roughness, dan detail yang tetap terbaca realtime." },
+        { number: "03", title: "Publish", description: "GLB/GLTF ringan untuk web, Unreal preview, dan CMS portfolio." }
+      ]
+    },
+    features: [
+      { title: "Realtime Ready", description: "GLB/GLTF ringan, orbit control, dan material tetap tajam.", icon: "Cuboid" },
+      { title: "Engine Friendly", description: "Struktur asset siap dipindah ke Unreal atau pipeline game.", icon: "BadgeCheck" },
+      { title: "Craft Detail", description: "Bentuk, warna, dan surface dibuat terasa handcrafted, bukan generik.", icon: "Sparkles" },
+      { title: "CMS Publish", description: "Upload model, isi metadata SEO, publish karya tanpa sentuh code.", icon: "FileText" }
+    ],
+    cta: {
+      title: "Ready to stage your next 3D asset?",
+      description: "Kirim brief, upload reference, dan mulai dari model hero sampai realtime viewer yang siap publish.",
+      buttonText: "Mulai Project",
+      buttonLink: "/contact"
+    },
+    sectionOrder: ["stats", "story", "services", "features", "portfolio", "testimonials", "cta"]
+  },
+  testimonials: [
+    { name: "Maya R.", role: "Creative Producer", text: "Asset preview-nya langsung enak dipakai untuk pitching. Klien bisa melihat bentuk dan material tanpa menunggu render tambahan." },
+    { name: "Dimas P.", role: "Game Prototype Lead", text: "Pipeline GLB dan texture-nya rapi. Export ke engine jadi jauh lebih singkat dan konsisten." },
+    { name: "Nadia S.", role: "Product Designer", text: "Visualnya punya rasa handcrafted, tapi tetap bersih dan profesional untuk showcase produk." }
+  ],
+  footer: {
+    brandText: "IMAGINE",
+    tagline: "Realtime 3D portfolio, interactive product staging, and CMS-ready publishing.",
+    columns: [
+      { title: "Explore", links: [{ label: "Portfolio", url: "/portfolio" }, { label: "About", url: "/about" }, { label: "Contact", url: "/contact" }] },
+      { title: "Services", links: [{ label: "3D Modeling", url: "/about" }, { label: "Realtime Viewer", url: "/portfolio" }, { label: "CMS Publishing", url: "/admin/login" }] }
+    ],
+    copyright: "Arka Wisesa Studio. Built for realtime 3D portfolio publishing.",
+    showNewsletter: true
+  },
+  navigation: {
+    brand: "Arka Wisesa",
+    items: [
+      { label: "Home", url: "/" },
+      { label: "Portfolio", url: "/portfolio" },
+      { label: "About", url: "/about" },
+      { label: "Contact", url: "/contact" }
+    ]
+  },
+  seo: {
+    home: { title: "Arka Wisesa - 3D Artist Portfolio", description: "Portfolio 3D artist untuk asset Blender, Unreal Engine, dan realtime GLB preview di web." },
+    portfolio: { title: "Portfolio 3D", description: "Kumpulan asset 3D Blender, Unreal Engine, hard surface, environment, dan product model dengan realtime preview." },
+    about: { title: "About", description: "Profil 3D artist, pengalaman, layanan, dan skill Blender/Unreal Engine." },
+    contact: { title: "Contact", description: "Kontak 3D artist untuk project Blender, Unreal Engine, dan realtime 3D web portfolio." }
   },
   design: {
-    headingFont: "Trebuchet MS",
+    headingFont: "Space Grotesk",
     bodyFont: "Inter",
     accentColor: "#c7ff5a",
     backgroundColor: "#05070b",
@@ -118,10 +241,56 @@ export function getFallbackPortfolios() {
   return fallbackPortfolio;
 }
 
+export function mergeProfileWithFallback(profile: SerializedProfile): SerializedProfile {
+  return {
+    ...fallbackProfile,
+    ...profile,
+    pages: {
+      home: { ...fallbackProfile.pages?.home, ...profile.pages?.home },
+      portfolio: { ...fallbackProfile.pages?.portfolio, ...profile.pages?.portfolio },
+      about: { ...fallbackProfile.pages?.about, ...profile.pages?.about },
+      contact: { ...fallbackProfile.pages?.contact, ...profile.pages?.contact }
+    },
+    sections: {
+      ...fallbackProfile.sections,
+      ...profile.sections,
+      hero: { ...fallbackProfile.sections?.hero, ...profile.sections?.hero },
+      story: {
+        ...fallbackProfile.sections?.story,
+        ...profile.sections?.story,
+        steps: profile.sections?.story?.steps ?? fallbackProfile.sections?.story?.steps
+      },
+      cta: { ...fallbackProfile.sections?.cta, ...profile.sections?.cta },
+      stats: profile.sections?.stats ?? fallbackProfile.sections?.stats,
+      features: profile.sections?.features ?? fallbackProfile.sections?.features,
+      sectionOrder: profile.sections?.sectionOrder ?? fallbackProfile.sections?.sectionOrder
+    },
+    footer: {
+      ...fallbackProfile.footer,
+      ...profile.footer,
+      columns: profile.footer?.columns ?? fallbackProfile.footer?.columns
+    },
+    navigation: {
+      ...fallbackProfile.navigation,
+      ...profile.navigation,
+      items: profile.navigation?.items ?? fallbackProfile.navigation?.items
+    },
+    seo: {
+      home: { ...fallbackProfile.seo?.home, ...profile.seo?.home },
+      portfolio: { ...fallbackProfile.seo?.portfolio, ...profile.seo?.portfolio },
+      about: { ...fallbackProfile.seo?.about, ...profile.seo?.about },
+      contact: { ...fallbackProfile.seo?.contact, ...profile.seo?.contact }
+    },
+    design: { ...fallbackProfile.design, ...profile.design },
+    testimonials: profile.testimonials ?? fallbackProfile.testimonials,
+    socialLinks: profile.socialLinks ?? fallbackProfile.socialLinks
+  };
+}
+
 export const getProfile = cache(async () => {
   try {
     const profile = await (await profileCollection()).findOne({});
-    return profile ? serializeDoc(profile) : fallbackProfile;
+    return profile ? mergeProfileWithFallback(serializeDoc(profile)) : fallbackProfile;
   } catch {
     return fallbackProfile;
   }
