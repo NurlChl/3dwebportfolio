@@ -1,6 +1,10 @@
 import { MongoClient, ObjectId, type Collection, type Document, type WithId } from "mongodb";
 
-const uri = process.env.DATABASE_URL;
+function cleanEnvValue(value?: string) {
+  return value?.trim().replace(/^['"]|['"]$/g, "");
+}
+
+const uri = cleanEnvValue(process.env.DATABASE_URL);
 
 if (!uri) {
   throw new Error("DATABASE_URL is required. Use a MongoDB connection string.");

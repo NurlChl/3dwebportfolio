@@ -5,8 +5,12 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 const COOKIE_NAME = "portfolio_admin_session";
 
+function cleanEnvValue(value?: string) {
+  return value?.trim().replace(/^['"]|['"]$/g, "").replace(/\\\$/g, "$");
+}
+
 function getSecret() {
-  return process.env.SESSION_SECRET ?? "dev-only-change-this-secret";
+  return cleanEnvValue(process.env.SESSION_SECRET) ?? "dev-only-change-this-secret";
 }
 
 function sign(value: string) {
@@ -14,9 +18,9 @@ function sign(value: string) {
 }
 
 export async function verifyAdmin(email: string, password: string) {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const passwordHash = process.env.ADMIN_PASSWORD_HASH;
-  const plainPassword = process.env.ADMIN_PASSWORD;
+  const adminEmail = cleanEnvValue(process.env.ADMIN_EMAIL);
+  const passwordHash = cleanEnvValue(process.env.ADMIN_PASSWORD_HASH);
+  const plainPassword = cleanEnvValue(process.env.ADMIN_PASSWORD);
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedPassword = password.trim();
   const isDevelopment = process.env.NODE_ENV !== "production";
@@ -29,15 +33,11 @@ export async function verifyAdmin(email: string, password: string) {
     return false;
   }
 
-  if (isDevelopment && plainPassword && normalizedPassword === plainPassword) {
+  if (passwordHash && (await bcrypt.compare(normalizedPassword, passwordHash))) {
     return true;
   }
 
-  if (!passwordHash) {
-    return false;
-  }
-
-  return bcrypt.compare(normalizedPassword, passwordHash);
+  return Boolean(plainPassword && normalizedPassword === plainPassword);
 }
 
 export async function createSession(email: string) {
