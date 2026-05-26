@@ -39,6 +39,6 @@ Credential development default:
 
 Untuk production, ganti `ADMIN_PASSWORD`, `ADMIN_PASSWORD_HASH`, dan `SESSION_SECRET`.
 
-## SEO
+## SEO 
 
 Project sudah menyediakan metadata per halaman, `sitemap.xml`, `robots.txt`, URL detail portfolio berbasis slug, dan konten ringkasan yang bisa diedit dari CMS. Untuk ranking, tetap perlu optimasi konten nyata: judul portfolio spesifik, deskripsi proses kerja, alt/poster media, backlink, performa asset 3D, dan domain authority.
