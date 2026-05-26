@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import { NextResponse } from "next/server";
+import { cleanAuthEnvValue, getAdminAuthDiagnostics } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,7 @@ function cleanEnvValue(value?: string) {
 export async function GET() {
   const databaseUrl = cleanEnvValue(process.env.DATABASE_URL ?? process.env.MONGODB_URI);
   const dbName = cleanEnvValue(process.env.MONGODB_DB) ?? getDatabaseNameFromUri(databaseUrl) ?? "portfolio3d";
-  const adminEmail = cleanEnvValue(process.env.ADMIN_EMAIL);
-  const adminPasswordHash = cleanEnvValue(process.env.ADMIN_PASSWORD_HASH);
-  const sessionSecret = cleanEnvValue(process.env.SESSION_SECRET);
+  const auth = getAdminAuthDiagnostics();
   const result = {
     ok: false,
     nodeEnv: process.env.NODE_ENV,
@@ -21,12 +20,8 @@ export async function GET() {
       hasMongoDbUri: Boolean(cleanEnvValue(process.env.MONGODB_URI)),
       databaseUrlLooksQuoted: Boolean(process.env.DATABASE_URL?.trim().match(/^['"]/)),
       dbName,
-      hasAdminEmail: Boolean(adminEmail),
-      hasAdminPasswordHash: Boolean(adminPasswordHash),
-      adminPasswordHashLooksValid: Boolean(adminPasswordHash?.startsWith("$2") && adminPasswordHash.length >= 55),
-      hasPlainAdminPassword: Boolean(cleanEnvValue(process.env.ADMIN_PASSWORD)),
-      hasSessionSecret: Boolean(sessionSecret),
-      sessionSecretLooksStrong: Boolean(sessionSecret && sessionSecret.length >= 32),
+      ...auth,
+      adminEmailMatchesCommonTypo: cleanAuthEnvValue(process.env.ADMIN_EMAIL)?.includes(" ") ?? false,
       siteUrl: cleanEnvValue(process.env.NEXT_PUBLIC_SITE_URL) ?? null
     },
     mongo: {

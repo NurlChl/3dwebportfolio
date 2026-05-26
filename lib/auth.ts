@@ -5,12 +5,44 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 const COOKIE_NAME = "portfolio_admin_session";
 
-function cleanEnvValue(value?: string) {
-  return value?.trim().replace(/^['"]|['"]$/g, "").replace(/\\\$/g, "$");
+export function cleanAuthEnvValue(value?: string) {
+  return value
+    ?.trim()
+    .replace(/^['"]|['"]$/g, "")
+    .replace(/\\+/g, (slashes) => (slashes.length > 1 ? "\\" : slashes))
+    .replace(/\\\$/g, "$")
+    .trim();
+}
+
+export function getAdminAuthDiagnostics() {
+  const adminEmail = cleanAuthEnvValue(process.env.ADMIN_EMAIL);
+  const passwordHash = cleanAuthEnvValue(process.env.ADMIN_PASSWORD_HASH);
+  const plainPassword = cleanAuthEnvValue(process.env.ADMIN_PASSWORD);
+  const sessionSecret = cleanAuthEnvValue(process.env.SESSION_SECRET);
+
+  return {
+    hasAdminEmail: Boolean(adminEmail),
+    adminEmailLooksValid: Boolean(adminEmail?.includes("@")),
+    adminEmailPreview: maskEmail(adminEmail),
+    adminEmailLength: adminEmail?.length ?? 0,
+    hasAdminPasswordHash: Boolean(passwordHash),
+    adminPasswordHashLooksValid: Boolean(passwordHash?.startsWith("$2") && passwordHash.length >= 55),
+    adminPasswordHashPrefix: passwordHash ? passwordHash.slice(0, 4) : null,
+    hasPlainAdminPassword: Boolean(plainPassword),
+    hasSessionSecret: Boolean(sessionSecret),
+    sessionSecretLooksStrong: Boolean(sessionSecret && sessionSecret.length >= 32)
+  };
+}
+
+function maskEmail(email?: string) {
+  if (!email) return null;
+  const [name, domain] = email.split("@");
+  if (!domain) return `${email.slice(0, 3)}***`;
+  return `${name.slice(0, 2)}***@${domain}`;
 }
 
 function getSecret() {
-  return cleanEnvValue(process.env.SESSION_SECRET) ?? "dev-only-change-this-secret";
+  return cleanAuthEnvValue(process.env.SESSION_SECRET) ?? "dev-only-change-this-secret";
 }
 
 function sign(value: string) {
@@ -18,9 +50,9 @@ function sign(value: string) {
 }
 
 export async function verifyAdmin(email: string, password: string) {
-  const adminEmail = cleanEnvValue(process.env.ADMIN_EMAIL);
-  const passwordHash = cleanEnvValue(process.env.ADMIN_PASSWORD_HASH);
-  const plainPassword = cleanEnvValue(process.env.ADMIN_PASSWORD);
+  const adminEmail = cleanAuthEnvValue(process.env.ADMIN_EMAIL);
+  const passwordHash = cleanAuthEnvValue(process.env.ADMIN_PASSWORD_HASH);
+  const plainPassword = cleanAuthEnvValue(process.env.ADMIN_PASSWORD);
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedPassword = password.trim();
   const isDevelopment = process.env.NODE_ENV !== "production";
@@ -33,8 +65,14 @@ export async function verifyAdmin(email: string, password: string) {
     return false;
   }
 
-  if (passwordHash && (await bcrypt.compare(normalizedPassword, passwordHash))) {
-    return true;
+  if (passwordHash?.startsWith("$2")) {
+    try {
+      if (await bcrypt.compare(normalizedPassword, passwordHash)) {
+        return true;
+      }
+    } catch {
+      return Boolean(plainPassword && normalizedPassword === plainPassword);
+    }
   }
 
   return Boolean(plainPassword && normalizedPassword === plainPassword);
