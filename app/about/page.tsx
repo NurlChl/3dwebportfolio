@@ -5,6 +5,9 @@ import { SiteNav } from "@/components/site-nav";
 import { PageHeader, PageShell, Panel, SectionHeader, Tag } from "@/components/ui";
 import { getProfile } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "About",
   description: "Profil 3D artist, pengalaman, layanan, dan skill Blender/Unreal Engine."

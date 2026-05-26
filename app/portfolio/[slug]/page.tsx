@@ -4,16 +4,14 @@ import { BadgeCheck } from "lucide-react";
 import { ModelViewer } from "@/components/model-viewer";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
-import { getPortfolioBySlug, getProfile, getPublishedPortfolios } from "@/lib/data";
+import { getPortfolioBySlug, getProfile } from "@/lib/data";
 
 type DetailProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-  const items = await getPublishedPortfolios();
-  return items.map((item) => ({ slug: item.slug }));
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: DetailProps): Promise<Metadata> {
   const { slug } = await params;

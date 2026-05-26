@@ -27,6 +27,7 @@ node -e "require('bcryptjs').hash('password-anda', 12).then(console.log)"
 ```bash
 npm install
 npm run db:seed
+npm run db:migrate-cms
 npm run dev
 ```
 
@@ -38,6 +39,19 @@ Credential development default:
 - Password: `admin12345`
 
 Untuk production, ganti `ADMIN_PASSWORD`, `ADMIN_PASSWORD_HASH`, dan `SESSION_SECRET`.
+
+## Struktur Database CMS
+
+CMS memakai koleksi terpisah agar tidak semua konten menumpuk di `profile`:
+
+- `site_profile`: identitas utama, kontak, service, skill, dan social link.
+- `pages`: konten per halaman (`home`, `portfolio`, `about`, `contact`).
+- `home_sections`: urutan dan isi section homepage.
+- `testimonials`: daftar testimonial dengan urutan tampil.
+- `footer`, `navigation`, `seo`, `design`: konfigurasi singleton per fitur.
+- `portfolios`: item portfolio, metadata, poster, dan URL model 3D.
+
+Koleksi lama `profile` masih dibaca sebagai fallback agar data lama tidak hilang. Jalankan `npm run db:migrate-cms` setelah deploy/update environment untuk menyalin isi `profile` ke struktur baru.
 
 ## SEO 
 

@@ -4,7 +4,7 @@ function cleanEnvValue(value?: string) {
   return value?.trim().replace(/^['"]|['"]$/g, "");
 }
 
-const uri = cleanEnvValue(process.env.DATABASE_URL);
+const uri = cleanEnvValue(process.env.DATABASE_URL ?? process.env.MONGODB_URI);
 
 if (!uri) {
   throw new Error("DATABASE_URL is required. Use a MongoDB connection string.");
@@ -179,6 +179,55 @@ export type ProfileDoc = {
 
 export type SerializedPortfolio = PortfolioDoc & { id: string };
 export type SerializedProfile = ProfileDoc & { id: string };
+export type PageKey = "home" | "portfolio" | "about" | "contact";
+
+export type SiteProfileDoc = Pick<
+  ProfileDoc,
+  | "name"
+  | "title"
+  | "bio"
+  | "location"
+  | "email"
+  | "experience"
+  | "services"
+  | "skills"
+  | "whatsapp"
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "linkedin"
+  | "socialLinks"
+> & {
+  key: "main";
+  updatedAt: Date;
+};
+
+export type PageContentDoc = {
+  key: PageKey;
+  content: NonNullable<ProfileDoc["pages"]>[PageKey];
+  updatedAt: Date;
+};
+
+export type HomeSectionsDoc = {
+  key: "home";
+  sections: NonNullable<ProfileDoc["sections"]>;
+  updatedAt: Date;
+};
+
+export type TestimonialDoc = {
+  name: string;
+  role: string;
+  text: string;
+  avatar?: string;
+  order: number;
+  updatedAt: Date;
+};
+
+export type SingletonDoc<T> = {
+  key: "main";
+  data: T;
+  updatedAt: Date;
+};
 
 export async function getDb() {
   if (process.env.NEXT_PHASE === "phase-production-build") {
@@ -188,7 +237,18 @@ export async function getDb() {
     throw new Error("MongoDB connection string is still using the placeholder value.");
   }
   const mongoClient = await client.connect();
-  return mongoClient.db(process.env.MONGODB_DB ?? "portfolio3d");
+  return mongoClient.db(getDatabaseName());
+}
+
+function getDatabaseName() {
+  const explicitDb = cleanEnvValue(process.env.MONGODB_DB);
+  if (explicitDb) return explicitDb;
+  try {
+    const pathname = new URL(mongoUri).pathname.replace(/^\//, "");
+    return pathname || "portfolio3d";
+  } catch {
+    return "portfolio3d";
+  }
 }
 
 export async function portfoliosCollection(): Promise<Collection<PortfolioDoc>> {
@@ -197,6 +257,38 @@ export async function portfoliosCollection(): Promise<Collection<PortfolioDoc>> 
 
 export async function profileCollection(): Promise<Collection<ProfileDoc>> {
   return (await getDb()).collection<ProfileDoc>("profile");
+}
+
+export async function siteProfileCollection(): Promise<Collection<SiteProfileDoc>> {
+  return (await getDb()).collection<SiteProfileDoc>("site_profile");
+}
+
+export async function pagesCollection(): Promise<Collection<PageContentDoc>> {
+  return (await getDb()).collection<PageContentDoc>("pages");
+}
+
+export async function homeSectionsCollection(): Promise<Collection<HomeSectionsDoc>> {
+  return (await getDb()).collection<HomeSectionsDoc>("home_sections");
+}
+
+export async function testimonialsCollection(): Promise<Collection<TestimonialDoc>> {
+  return (await getDb()).collection<TestimonialDoc>("testimonials");
+}
+
+export async function footerCollection(): Promise<Collection<SingletonDoc<ProfileDoc["footer"]>>> {
+  return (await getDb()).collection<SingletonDoc<ProfileDoc["footer"]>>("footer");
+}
+
+export async function navigationCollection(): Promise<Collection<SingletonDoc<ProfileDoc["navigation"]>>> {
+  return (await getDb()).collection<SingletonDoc<ProfileDoc["navigation"]>>("navigation");
+}
+
+export async function seoCollection(): Promise<Collection<SingletonDoc<ProfileDoc["seo"]>>> {
+  return (await getDb()).collection<SingletonDoc<ProfileDoc["seo"]>>("seo");
+}
+
+export async function designCollection(): Promise<Collection<SingletonDoc<ProfileDoc["design"]>>> {
+  return (await getDb()).collection<SingletonDoc<ProfileDoc["design"]>>("design");
 }
 
 export function serializeDoc<T extends Document>(doc: WithId<T>): T & { id: string } {

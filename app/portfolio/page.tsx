@@ -5,6 +5,9 @@ import { SiteNav } from "@/components/site-nav";
 import { PageHeader, PageShell } from "@/components/ui";
 import { getProfile, getPublishedPortfolios } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Portfolio 3D",
   description: "Kumpulan asset 3D Blender, Unreal Engine, hard surface, environment, dan product model dengan realtime preview."

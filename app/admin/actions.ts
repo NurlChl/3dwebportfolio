@@ -6,8 +6,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clearSession, createSession, requireAdmin, verifyAdmin } from "@/lib/auth";
+import { getStoredPages, saveDesign, saveFooter, saveHomeSections, saveNavigation, savePages, saveSeo, saveSiteProfile, saveTestimonials } from "@/lib/cms-store";
 import { getFallbackPortfolios, getFallbackProfile } from "@/lib/data";
-import { ObjectId, portfoliosCollection, profileCollection } from "@/lib/mongodb";
+import { ObjectId, portfoliosCollection } from "@/lib/mongodb";
 import { slugify } from "@/lib/utils";
 
 const portfolioSchema = z.object({
@@ -103,7 +104,7 @@ export async function saveProfileAction(formData: FormData) {
     skills: getList(formData, "skills", String(formData.get("skills") ?? ""))
   };
 
-  await upsertProfilePatch(data);
+  await saveSiteProfile(data);
 
   revalidatePath("/");
   revalidatePath("/about");
@@ -194,7 +195,7 @@ export async function saveContactAction(formData: FormData) {
     updatedAt: new Date()
   };
 
-  await upsertProfilePatch(data);
+  await saveSiteProfile(data);
 
   revalidatePath("/contact");
   redirect("/admin?view=contact&updated=contact");
@@ -220,7 +221,7 @@ export async function saveDesignAction(formData: FormData) {
     buttonSize: String(formData.get("buttonSize") ?? "").trim(),
     badgeSize: String(formData.get("badgeSize") ?? "").trim()
   };
-  await upsertProfilePatch({ design });
+  await saveDesign(design);
   revalidatePath("/");
   revalidatePath("/portfolio");
   revalidatePath("/about");
@@ -233,9 +234,8 @@ export async function savePagesAction(formData: FormData) {
   const pageKeys = ["home", "portfolio", "about", "contact"] as const;
   const selectedPage = String(formData.get("pageKey") ?? "").trim();
   const keysToSave = pageKeys.includes(selectedPage as (typeof pageKeys)[number]) ? [selectedPage as (typeof pageKeys)[number]] : pageKeys;
-  const currentProfile = await (await profileCollection()).findOne({});
   const fallbackPages = getFallbackProfile().pages ?? {};
-  const currentPages = currentProfile?.pages ?? {};
+  const currentPages = await getStoredPages();
   const pages = {
     home: { ...fallbackPages.home, ...currentPages.home },
     portfolio: { ...fallbackPages.portfolio, ...currentPages.portfolio },
@@ -257,7 +257,7 @@ export async function savePagesAction(formData: FormData) {
       })
     )
   );
-  await upsertProfilePatch({ pages: { ...pages, ...updates } });
+  await savePages({ ...pages, ...updates }, keysToSave);
   revalidatePath("/");
   revalidatePath("/portfolio");
   revalidatePath("/about");
@@ -321,18 +321,6 @@ function capitalize(value: string) {
   return `${value[0].toUpperCase()}${value.slice(1)}`;
 }
 
-async function upsertProfilePatch(data: Record<string, unknown>) {
-  const collection = await profileCollection();
-  const existing = await collection.findOne({});
-  if (existing) {
-    await collection.updateOne({ _id: existing._id }, { $set: { ...data, updatedAt: new Date() } });
-  } else {
-    const { id, ...fallbackProfile } = getFallbackProfile();
-    void id;
-    await collection.insertOne({ ...fallbackProfile, ...data, updatedAt: new Date() });
-  }
-}
-
 function parseJsonField<T>(formData: FormData, name: string, fallback: T) {
   const raw = String(formData.get(name) ?? "").trim();
   if (!raw) return fallback;
@@ -353,9 +341,9 @@ function revalidatePublicPages() {
 export async function saveSectionsAction(formData: FormData) {
   await requireAdmin();
   const sections = parseJsonField(formData, "sections", {});
-  await upsertProfilePatch({ sections });
+  await saveHomeSections(sections);
   revalidatePublicPages();
-  redirect("/admin?view=sections&updated=sections");
+  redirect("/admin?view=pages&page=home&updated=sections");
 }
 
 export async function saveTestimonialsAction(formData: FormData) {
@@ -367,7 +355,7 @@ export async function saveTestimonialsAction(formData: FormData) {
       avatar: (await saveUpload(formData.get(`testimonialAvatarFile${index}`) as File | null, "image")) ?? testimonial.avatar
     }))
   );
-  await upsertProfilePatch({ testimonials: withUploads });
+  await saveTestimonials(withUploads);
   revalidatePath("/");
   redirect("/admin?view=testimonials&updated=testimonials");
 }
@@ -375,7 +363,7 @@ export async function saveTestimonialsAction(formData: FormData) {
 export async function saveFooterAction(formData: FormData) {
   await requireAdmin();
   const footer = parseJsonField(formData, "footer", {});
-  await upsertProfilePatch({ footer });
+  await saveFooter(footer);
   revalidatePublicPages();
   redirect("/admin?view=footer&updated=footer");
 }
@@ -387,7 +375,7 @@ export async function saveNavigationAction(formData: FormData) {
   if (uploadedLogo) {
     Object.assign(navigation, { logo: uploadedLogo });
   }
-  await upsertProfilePatch({ navigation });
+  await saveNavigation(navigation);
   revalidatePublicPages();
   redirect("/admin?view=navigation&updated=navigation");
 }
@@ -403,7 +391,7 @@ export async function saveSeoAction(formData: FormData) {
       }
     })
   );
-  await upsertProfilePatch({ seo });
+  await saveSeo(seo);
   revalidatePublicPages();
   redirect("/admin?view=seo&updated=seo");
 }

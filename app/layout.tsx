@@ -5,6 +5,9 @@ import { ScrollEffects } from "@/components/scroll-effects";
 import { getProfile } from "@/lib/data";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {

@@ -1,7 +1,7 @@
 import { cache } from "react";
+import { getStructuredProfile } from "@/lib/cms-store";
 import {
   portfoliosCollection,
-  profileCollection,
   serializeDoc,
   type SerializedPortfolio,
   type SerializedProfile
@@ -289,8 +289,8 @@ export function mergeProfileWithFallback(profile: SerializedProfile): Serialized
 
 export const getProfile = cache(async () => {
   try {
-    const profile = await (await profileCollection()).findOne({});
-    return profile ? mergeProfileWithFallback(serializeDoc(profile)) : fallbackProfile;
+    const profile = await getStructuredProfile();
+    return profile ? mergeProfileWithFallback(profile) : fallbackProfile;
   } catch {
     return fallbackProfile;
   }

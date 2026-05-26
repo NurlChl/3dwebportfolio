@@ -3,9 +3,9 @@ import { Contact, Edit3, FileText, FolderKanban, Images, LogOut, MessageSquareQu
 import { readdir } from "fs/promises";
 import path from "path";
 import { deletePortfolioAction, logoutAction, saveContactAction, saveDesignAction, saveFooterAction, saveNavigationAction, savePagesAction, savePortfolioAction, saveProfileAction, saveSectionsAction, saveSeoAction, saveTestimonialsAction, seedDemoPortfoliosAction } from "@/app/admin/actions";
-import { getAllPortfoliosForAdmin, getFallbackPortfolios, getFallbackProfile, mergeProfileWithFallback } from "@/lib/data";
+import { getAllPortfoliosForAdmin, getFallbackPortfolios, getFallbackProfile, getProfile } from "@/lib/data";
 import { requireAdmin } from "@/lib/auth";
-import { profileCollection, serializeDoc, type SerializedProfile } from "@/lib/mongodb";
+import type { SerializedProfile } from "@/lib/mongodb";
 import { RepeaterInput, SocialLinksRepeater } from "@/components/repeater-input";
 import { SectionEditor } from "@/components/section-editor";
 import { FooterEditor, NavigationEditor, SeoEditor } from "@/components/site-config-editor";
@@ -29,8 +29,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   let dbOffline = false;
 
   try {
-    const [profileDoc, portfolioItems] = await Promise.all([(await profileCollection()).findOne({}), getAllPortfoliosForAdmin()]);
-    profile = profileDoc ? mergeProfileWithFallback(serializeDoc(profileDoc)) : profile;
+    const [profileDoc, portfolioItems] = await Promise.all([getProfile(), getAllPortfoliosForAdmin()]);
+    profile = profileDoc;
     portfolios = portfolioItems;
   } catch {
     dbOffline = true;

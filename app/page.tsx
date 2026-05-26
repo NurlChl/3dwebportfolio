@@ -8,6 +8,9 @@ import { SiteNav } from "@/components/site-nav";
 import { StudioWorld } from "@/components/studio-world";
 import { getProfile, getPublishedPortfolios } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const iconMap = { BadgeCheck, Cuboid, FileText, Sparkles };
 
 export default async function HomePage() {
